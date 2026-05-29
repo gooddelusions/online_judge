@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>codebrownie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        bg:'#08080f', surface:'#0e0e1a', border:'#1a1a2e',
+        muted:'#3a3a55', dim:'#6b6b90', text:'#c9c9e3',
+        bright:'#e8e8ff', cyan:'#22d3ee', violet:'#a78bfa',
+      }}}
+    }
+  </script>
+  <script>var require = { paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } };</script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak]{display:none!important}
+    *{box-sizing:border-box}
+    body{background:#08080f;font-family:'Inter',sans-serif;color:#c9c9e3;height:100vh;display:flex;flex-direction:column;overflow:hidden;margin:0}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:#3a3a55}
+
+    /* ── Grid cards ── */
+    .card{background:#0e0e1a;border:1px solid #1a1a2e;transition:border-color .15s,box-shadow .15s,transform .15s}
+    .card:hover{border-color:rgba(34,211,238,.35);box-shadow:0 0 0 1px rgba(34,211,238,.1),0 8px 32px rgba(0,0,0,.4);transform:translateY(-1px)}
+
+    /* ── Badges ── */
+    .badge-basic {background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+    .badge-easy  {background:rgba(52,211,153,.12); color:#6ee7b7;border:1px solid rgba(52,211,153,.3)}
+    .badge-medium{background:rgba(251,191,36,.12); color:#fcd34d;border:1px solid rgba(251,191,36,.3)}
+    .badge-hard  {background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.3)}
+    .chip-active-basic {background:#475569;color:#fff;border-color:#475569}
+    .chip-active-easy  {background:#059669;color:#fff;border-color:#059669}
+    .chip-active-medium{background:#d97706;color:#fff;border-color:#d97706}
+    .chip-active-hard  {background:#dc2626;color:#fff;border-color:#dc2626}
+
+    /* ── Tags ── */
+    .tag-topic  {background:rgba(34,211,238,.08); color:#67e8f9;border:1px solid rgba(34,211,238,.2)}
+    .tag-company{background:rgba(167,139,250,.08);color:#c4b5fd;border:1px solid rgba(167,139,250,.2)}
+
+    /* ── Input ── */
+    .input-dark{background:#060610;border:1px solid #1a1a2e;color:#c9c9e3;transition:border-color .15s,box-shadow .15s}
+    .input-dark::placeholder{color:#3a3a55}
+    .input-dark:focus{outline:none;border-color:rgba(34,211,238,.5);box-shadow:0 0 0 3px rgba(34,211,238,.06)}
+
+    /* ── Problem content ── */
+    .prose-content{color:#c9c9e3;line-height:1.75}
+    .prose-content p{margin-bottom:.85rem}
+    .prose-content pre{background:#060610;border:1px solid #1a1a2e;border-left:3px solid #22d3ee;border-radius:4px;padding:.85rem 1rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;margin-bottom:.85rem;color:#a5f3fc}
+    .prose-content strong{color:#e8e8ff;font-weight:600}
+    .prose-content img{border-radius:6px;border:1px solid #1a1a2e;max-width:100%}
+    .prose-content sup{font-size:.7em}
+
+    /* ── Skeleton ── */
+    .skeleton{background:linear-gradient(90deg,#0e0e1a 25%,#141425 50%,#0e0e1a 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* ── Split-view root (x-show controlled — display must be in class, not inline) ── */
+    .split-view{flex:1;display:flex;overflow:hidden;min-height:0}
+
+    /* ── Sidebar ── */
+    .sidebar{width:272px;flex-shrink:0;border-right:1px solid #1a1a2e;display:flex;flex-direction:column;overflow:hidden;background:#08080f}
+    .sidebar-hd{flex-shrink:0;padding:10px 10px 8px;border-bottom:1px solid #1a1a2e;background:#09090f}
+    .sidebar-list{flex:1;overflow-y:auto}
+    .sidebar-row{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-left:2px solid transparent;transition:background .1s,border-color .1s}
+    .sidebar-row:hover{background:rgba(255,255,255,.03)}
+    .sidebar-row.active{background:rgba(34,211,238,.05);border-left-color:#22d3ee}
+    .sidebar-row.active .sname{color:#e8e8ff}
+    .sname{font-size:12px;color:#6b6b90;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .1s}
+    .sidebar-row:hover .sname{color:#c9c9e3}
+    .diff-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+    /* ── Problem pane ── */
+    .prob-pane{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #1a1a2e;min-width:0}
+    .prob-hd{flex-shrink:0;border-bottom:1px solid #1a1a2e;padding:14px 18px 10px;background:#060610}
+    .prob-body{flex:1;overflow-y:auto;padding:18px 22px}
+
+    /* ── IDE pane ── */
+    .ide-pane{display:flex;flex-direction:column;overflow:hidden;min-width:0;flex:1}
+
+    /* ── IDE toolbar ── */
+    .ide-tb{display:flex;align-items:center;height:36px;flex-shrink:0;background:#0a0a15;border-bottom:1px solid #1a1a2e;padding:0 4px}
+    .file-tab{display:flex;align-items:center;gap:6px;padding:0 12px;height:100%;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b6b90;border-right:1px solid #1a1a2e;position:relative}
+    .file-tab::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:#22d3ee}
+    .file-tab svg{width:13px;height:13px;color:#22d3ee;flex-shrink:0}
+    .lang-badge{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;padding:0 8px}
+    .run-btn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:0 14px;height:26px;margin-right:4px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.3);color:#22d3ee}
+    .run-btn:hover:not(:disabled){background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.55)}
+    .run-btn:disabled{opacity:.4;cursor:not-allowed}
+    .run-btn .spin{width:11px;height:11px;border-radius:50%;border:2px solid transparent;border-top-color:#22d3ee;animation:rot .6s linear infinite;flex-shrink:0}
+    @keyframes rot{to{transform:rotate(360deg)}}
+
+    /* ── Monaco wrap ── */
+    .monaco-wrap{flex:1;min-height:0;position:relative}
+    #monaco-editor{width:100%;height:100%}
+    .monaco-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#08080f;z-index:2}
+
+    /* ── Bottom panel ── */
+    .btm-panel{height:200px;flex-shrink:0;display:flex;flex-direction:column;border-top:1px solid #1a1a2e}
+    .panel-tabs{display:flex;height:30px;flex-shrink:0;background:#0a0a15;border-bottom:1px solid #1a1a2e}
+    .ptab{display:flex;align-items:center;gap:5px;padding:0 13px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;border-right:1px solid #1a1a2e;transition:color .15s;position:relative}
+    .ptab.on{color:#c9c9e3}
+    .ptab.on::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px}
+    .ptab.on.t-stdin::after{background:#a78bfa}
+    .ptab.on.t-output::after{background:#22d3ee}
+    .ptab:not(.on){color:#3a3a55}
+    .ptab:not(.on):hover{color:#6b6b90}
+    .panel-body{flex:1;overflow:auto}
+    .stdin-area{width:100%;height:100%;resize:none;background:#040409;border:none;outline:none;padding:10px 13px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9c9e3;line-height:1.6}
+    .stdin-area::placeholder{color:#2a2a45}
+    .out-area{padding:8px 13px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .out-idle{color:#2a2a45;font-style:italic}
+
+    /* ── Verdict ── */
+    .s-ac {background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.4)}
+    .s-tle{background:rgba(251,191,36,.12); color:#fcd34d;border:1px solid rgba(251,191,36,.4)}
+    .s-mle{background:rgba(167,139,250,.12);color:#c4b5fd;border:1px solid rgba(167,139,250,.4)}
+    .s-rte{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.4)}
+    .s-ce {background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.4)}
+    .s-wa {background:rgba(251,146,60,.12); color:#fdba74;border:1px solid rgba(251,146,60,.4)}
+
+    /* ── Resize handle ── */
+    .rsz{width:4px;flex-shrink:0;cursor:col-resize;background:#1a1a2e;transition:background .15s;position:relative;z-index:1}
+    .rsz:hover{background:#22d3ee55}
+    .rsz.dragging{background:#22d3ee80}
+  </style>
+</head>
+<body x-data="app()" x-init="init()" x-cloak>
+
+  <!-- ══ HEADER ════════════════════════════════════════════════════ -->
+  <header style="height:52px;flex-shrink:0;background:rgba(8,8,15,.95);border-bottom:1px solid #1a1a2e;backdrop-filter:blur(12px);z-index:40;">
+    <div style="height:100%;padding:0 18px;" class="flex items-center gap-3">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div style="background:linear-gradient(135deg,#22d3ee18,#a78bfa18);border:1px solid #22d3ee40;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'JetBrains Mono',monospace;color:#22d3ee;font-size:11px;font-weight:600;">cb</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;">
+          <span style="color:#22d3ee;">&lt;</span><span style="color:#e8e8ff;">codebrownie</span><span style="color:#a78bfa;"> /</span><span style="color:#22d3ee;">&gt;</span>
+        </span>
+      </div>
+
+      <div style="width:1px;height:16px;background:#1a1a2e;" class="shrink-0"></div>
+
+      <!-- GRID MODE controls -->
+      <template x-if="!detail">
+        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;flex-shrink:0;" x-text="`${filtered.length}/${questions.length}`"></span>
+          <div style="width:1px;height:12px;background:#1a1a2e;" class="shrink-0"></div>
+
+          <!-- Difficulty -->
+          <template x-for="d in ['Basic','Easy','Medium','Hard']" :key="d">
+            <button @click="toggleDifficulty(d)"
+              class="px-2.5 py-0.5 rounded text-xs border transition-all"
+              style="font-family:'JetBrains Mono',monospace;"
+              :class="difficultyFilters.includes(d) ? chipActiveCls(d) : 'border-border text-dim hover:border-muted hover:text-text'"
+              x-text="d.toLowerCase()">
+            </button>
+          </template>
+
+          <div style="width:1px;height:12px;background:#1a1a2e;" class="shrink-0"></div>
+
+          <!-- Topics -->
+          <div class="relative shrink-0" x-data="{open:false}">
+            <button @click="open=!open"
+              class="flex items-center gap-1 px-2.5 py-0.5 rounded text-xs border transition-all"
+              style="font-family:'JetBrains Mono',monospace;"
+              :class="topicFilters.length ? 'border-cyan/50 text-cyan bg-cyan/5' : 'border-border text-dim hover:border-muted hover:text-text'">
+              topics<span x-show="topicFilters.length" x-text="`[${topicFilters.length}]`" style="color:#22d3ee;font-weight:600;margin-left:2px;"></span>
+              <svg class="w-3 h-3 opacity-40 ml-0.5" :class="open&&'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" @click.away="open=false"
+              style="background:#0a0a16;border:1px solid #1a1a2e;box-shadow:0 20px 60px rgba(0,0,0,.7);"
+              class="absolute top-full mt-1.5 left-0 rounded-lg p-3 z-50 w-60 max-h-64 overflow-y-auto">
+              <input type="text" x-model="topicSearch" placeholder="filter…" class="input-dark rounded px-2 py-1 text-xs w-full mb-2" style="font-family:'JetBrains Mono',monospace;"/>
+              <template x-for="tag in filteredTopicOptions" :key="tag">
+                <label class="flex items-center gap-2 py-1 px-1 rounded cursor-pointer hover:bg-white/5">
+                  <input type="checkbox" :value="tag" x-model="topicFilters" class="accent-cyan-400 w-3 h-3"/>
+                  <span class="text-xs" style="font-family:'JetBrains Mono',monospace;color:#c9c9e3;" x-text="tag"></span>
+                </label>
+              </template>
+              <p x-show="filteredTopicOptions.length===0" class="text-xs text-center py-2" style="color:#3a3a55;font-family:'JetBrains Mono',monospace;">// no results</p>
+            </div>
+          </div>
+
+          <!-- Companies -->
+          <div class="relative shrink-0" x-data="{open:false}">
+            <button @click="open=!open"
+              class="flex items-center gap-1 px-2.5 py-0.5 rounded text-xs border transition-all"
+              style="font-family:'JetBrains Mono',monospace;"
+              :class="companyFilters.length ? 'border-violet/50 text-violet bg-violet/5' : 'border-border text-dim hover:border-muted hover:text-text'">
+              companies<span x-show="companyFilters.length" x-text="`[${companyFilters.length}]`" style="color:#a78bfa;font-weight:600;margin-left:2px;"></span>
+              <svg class="w-3 h-3 opacity-40 ml-0.5" :class="open&&'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" @click.away="open=false"
+              style="background:#0a0a16;border:1px solid #1a1a2e;box-shadow:0 20px 60px rgba(0,0,0,.7);"
+              class="absolute top-full mt-1.5 left-0 rounded-lg p-3 z-50 w-60 max-h-64 overflow-y-auto">
+              <input type="text" x-model="companySearch" placeholder="filter…" class="input-dark rounded px-2 py-1 text-xs w-full mb-2" style="font-family:'JetBrains Mono',monospace;"/>
+              <template x-for="co in filteredCompanyOptions" :key="co">
+                <label class="flex items-center gap-2 py-1 px-1 rounded cursor-pointer hover:bg-white/5">
+                  <input type="checkbox" :value="co" x-model="companyFilters" class="accent-violet-400 w-3 h-3"/>
+                  <span class="text-xs" style="font-family:'JetBrains Mono',monospace;color:#c9c9e3;" x-text="co"></span>
+                </label>
+              </template>
+              <p x-show="filteredCompanyOptions.length===0" class="text-xs text-center py-2" style="color:#3a3a55;font-family:'JetBrains Mono',monospace;">// no results</p>
+            </div>
+          </div>
+
+          <button x-show="hasFilters" @click="clearFilters()"
+            class="px-2 py-0.5 rounded text-xs border border-transparent shrink-0"
+            style="color:#ef4444;font-family:'JetBrains Mono',monospace;"
+            @mouseover="$el.style.borderColor='rgba(239,68,68,.3)'"
+            @mouseout="$el.style.borderColor='transparent'">✕ reset</button>
+
+          <div class="flex-1"></div>
+
+          <!-- Search -->
+          <div class="relative shrink-0">
+            <svg class="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style="color:#3a3a55;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+            <input type="text" x-model="search" placeholder="search problems…" class="input-dark rounded pl-7 pr-3 py-1 text-xs w-44" style="font-family:'JetBrains Mono',monospace;"/>
+          </div>
+
+          <!-- Sort -->
+          <select x-model="sortBy" class="input-dark rounded px-2 py-1 text-xs shrink-0" style="font-family:'JetBrains Mono',monospace;">
+            <option value="difficulty">difficulty</option>
+            <option value="accuracy_desc">accuracy ↓</option>
+            <option value="accuracy_asc">accuracy ↑</option>
+            <option value="marks_desc">marks ↓</option>
+            <option value="name">a → z</option>
+          </select>
+        </div>
+      </template>
+
+      <!-- SPLIT MODE controls -->
+      <template x-if="detail">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button @click="detail=null"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border border-border text-dim hover:border-muted hover:text-text transition-all shrink-0"
+            style="font-family:'JetBrains Mono',monospace;">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            back
+          </button>
+          <div style="width:1px;height:14px;background:#1a1a2e;" class="shrink-0"></div>
+          <span class="shrink-0 px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" :class="detail&&badgeCls(detail.difficulty)" x-text="detail&&detail.difficulty.toLowerCase()"></span>
+          <span class="text-sm font-medium truncate min-w-0" style="color:#e8e8ff;" x-text="detail&&detail.name"></span>
+          <div class="flex-1"></div>
+          <a x-show="detail&&detail.problem_url" :href="detail&&detail.problem_url" target="_blank"
+            class="shrink-0 text-xs flex items-center gap-1"
+            style="font-family:'JetBrains Mono',monospace;color:#22d3ee;">open ↗</a>
+        </div>
+      </template>
+
+    </div>
+  </header>
+
+  <!-- ══ GRID VIEW ════════════════════════════════════════════════ -->
+  <main x-show="!detail" style="flex:1;overflow-y:auto;">
+    <div style="max-width:1280px;margin:0 auto;padding:20px 18px;">
+
+      <!-- Skeleton -->
+      <div x-show="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <template x-for="i in 12" :key="i">
+          <div style="background:#0e0e1a;border:1px solid #1a1a2e;" class="rounded-lg p-4">
+            <div class="flex justify-between mb-3 gap-3"><div class="skeleton h-4 rounded w-3/4"></div><div class="skeleton h-5 rounded w-14 shrink-0"></div></div>
+            <div class="skeleton h-3 rounded w-1/3 mb-3"></div>
+            <div class="flex gap-1.5"><div class="skeleton h-5 rounded w-16"></div><div class="skeleton h-5 rounded w-20"></div></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Problem grid -->
+      <div x-show="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <template x-for="q in filtered" :key="q.slug">
+          <div @click="openQuestion(q.slug)" class="card rounded-lg p-4 cursor-pointer">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="font-medium text-sm leading-snug" style="color:#e8e8ff;" x-text="q.name"></h3>
+              <span class="shrink-0 px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" :class="badgeCls(q.difficulty)" x-text="q.difficulty.toLowerCase()"></span>
+            </div>
+            <div class="flex gap-3 text-xs mb-3" style="font-family:'JetBrains Mono',monospace;color:#3a3a55;">
+              <span x-text="`★ ${q.marks}pt`"></span>
+              <span x-text="`⌀ ${q.accuracy}`"></span>
+              <span x-text="fmtNum(q.all_submissions)"></span>
+            </div>
+            <div class="flex flex-wrap gap-1 mb-1.5">
+              <template x-for="tag in q.topic_tags.slice(0,3)" :key="tag">
+                <span class="tag-topic px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" x-text="tag"></span>
+              </template>
+              <span x-show="q.topic_tags.length>3" class="px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;background:#0e0e1a;color:#3a3a55;border:1px solid #1a1a2e;" x-text="`+${q.topic_tags.length-3}`"></span>
+            </div>
+            <div x-show="q.company_tags.length" class="flex flex-wrap gap-1">
+              <template x-for="co in q.company_tags.slice(0,3)" :key="co">
+                <span class="tag-company px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" x-text="co"></span>
+              </template>
+              <span x-show="q.company_tags.length>3" class="px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;background:#0e0e1a;color:#3a3a55;border:1px solid #1a1a2e;" x-text="`+${q.company_tags.length-3}`"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div x-show="!loading && filtered.length===0" class="flex flex-col items-center justify-center py-24">
+        <p class="text-sm mb-3" style="font-family:'JetBrains Mono',monospace;color:#3a3a55;">// no matches found</p>
+        <button @click="clearFilters()" class="text-xs" style="font-family:'JetBrains Mono',monospace;color:#22d3ee;">reset filters →</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══ SPLIT VIEW ═══════════════════════════════════════════════ -->
+  <div x-show="detail" class="split-view">
+
+    <!-- ── Sidebar ── -->
+    <div class="sidebar">
+      <div class="sidebar-hd">
+        <!-- Search -->
+        <div class="relative mb-2">
+          <svg class="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3" style="color:#3a3a55;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+          <input type="text" x-model="search" placeholder="search…" class="input-dark rounded px-2 pl-6 py-1 text-xs w-full" style="font-family:'JetBrains Mono',monospace;"/>
+        </div>
+        <!-- Difficulty chips -->
+        <div class="flex flex-wrap gap-1 mb-1.5">
+          <template x-for="d in ['Basic','Easy','Medium','Hard']" :key="d">
+            <button @click="toggleDifficulty(d)"
+              class="px-2 py-0.5 rounded border transition-all"
+              style="font-family:'JetBrains Mono',monospace;font-size:10px;"
+              :class="difficultyFilters.includes(d) ? chipActiveCls(d) : 'border-border text-dim hover:border-muted'"
+              x-text="d.toLowerCase()">
+            </button>
+          </template>
+          <button x-show="difficultyFilters.length||search" @click="difficultyFilters=[];search=''"
+            class="px-1.5 py-0.5 rounded border border-transparent"
+            style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#ef4444;">✕</button>
+        </div>
+        <!-- Count -->
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3a3a55;" x-text="`${filtered.length} / ${questions.length}`"></span>
+      </div>
+      <div class="sidebar-list">
+        <template x-for="q in filtered" :key="q.slug">
+          <div @click="openQuestion(q.slug)" class="sidebar-row" :class="detail&&detail.slug===q.slug&&'active'">
+            <div class="diff-dot" :style="diffDot(q.difficulty)"></div>
+            <span class="sname" x-text="q.name"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#3a3a55;flex-shrink:0;" x-text="`★${q.marks}`"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ── Content: problem + IDE ── -->
+    <div id="split-content" style="flex:1;display:flex;overflow:hidden;min-width:0;">
+
+      <!-- Problem pane -->
+      <div class="prob-pane" :style="`flex: 0 0 ${pct}%`">
+        <div class="prob-hd">
+          <div class="flex items-center gap-3 mb-2">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;" x-text="`★ ${detail&&detail.marks}pt`"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;" x-text="`⌀ ${detail&&detail.accuracy}`"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;" x-text="detail&&fmtNum(detail.all_submissions)+' submissions'"></span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <template x-for="tag in (detail&&detail.topic_tags||[])">
+              <span class="tag-topic px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" x-text="tag"></span>
+            </template>
+            <template x-for="co in (detail&&detail.company_tags||[])">
+              <span class="tag-company px-2 py-0.5 rounded text-xs" style="font-family:'JetBrains Mono',monospace;" x-text="co"></span>
+            </template>
+          </div>
+        </div>
+        <div class="prob-body">
+          <div x-show="detailLoading" class="flex items-center justify-center py-16">
+            <div class="w-5 h-5 rounded-full border-2 border-transparent animate-spin" style="border-top-color:#22d3ee;"></div>
+          </div>
+          <div x-show="!detailLoading" class="prose-content text-sm" x-html="detail&&detail.content"></div>
+        </div>
+      </div>
+
+      <!-- Resize handle -->
+      <div class="rsz" :class="dragging&&'dragging'" @mousedown.prevent="startResize($event)"></div>
+
+      <!-- IDE pane -->
+      <div class="ide-pane">
+
+        <!-- Toolbar -->
+        <div class="ide-tb">
+          <div class="file-tab">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            <span style="color:#c9c9e3;">solution</span><span style="color:#3a3a55;">.cpp</span>
+          </div>
+          <span class="lang-badge">C++23 · g++15</span>
+          <button class="run-btn" @click="runCode()" :disabled="judgeLoading">
+            <template x-if="!judgeLoading">
+              <span class="flex items-center gap-1.5">
+                <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                Run
+              </span>
+            </template>
+            <template x-if="judgeLoading">
+              <span class="flex items-center gap-1.5">
+                <div class="spin"></div>
+                <span x-text="judgePhase"></span>
+              </span>
+            </template>
+          </button>
+        </div>
+
+        <!-- Monaco -->
+        <div class="monaco-wrap">
+          <div id="monaco-editor"></div>
+          <div x-show="monacoLoading" class="monaco-overlay">
+            <div class="w-4 h-4 rounded-full border-2 border-transparent animate-spin" style="border-top-color:#22d3ee;"></div>
+          </div>
+        </div>
+
+        <!-- Bottom panel -->
+        <div class="btm-panel">
+          <div class="panel-tabs">
+            <button class="ptab t-stdin" :class="btab==='stdin'&&'on'" @click="btab='stdin'">
+              <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              stdin
+            </button>
+            <button class="ptab t-output" :class="btab==='output'&&'on'" @click="btab='output'">
+              <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              output
+              <span x-show="judgeResult" class="w-1.5 h-1.5 rounded-full ml-1"
+                :style="judgeResult&&judgeResult.type==='ok'&&Object.values(judgeResult.results)[0]?.status==='AC'?'background:#6ee7b7':'background:#fca5a5'"></span>
+            </button>
+          </div>
+          <div class="panel-body" x-show="btab==='stdin'">
+            <textarea class="stdin-area" x-model="judgeInput" placeholder="// paste sample input here…&#10;// leave empty for no stdin"></textarea>
+          </div>
+          <div class="panel-body" x-show="btab==='output'">
+            <div x-show="!judgeResult&&!judgeLoading" class="out-area out-idle">// press Run to execute</div>
+            <div x-show="judgeLoading" class="out-area out-idle" x-text="`// ${judgePhase}`"></div>
+            <template x-if="judgeResult&&judgeResult.type==='ce'">
+              <div class="out-area">
+                <span class="s-ce px-2 py-0.5 rounded text-xs mr-2" style="font-family:'JetBrains Mono',monospace;">CE</span>
+                <span style="color:#3a3a55;font-size:11px;">compilation failed</span>
+                <div style="color:#fca5a5;margin-top:10px;" x-text="judgeResult.stderr"></div>
+              </div>
+            </template>
+            <template x-if="judgeResult&&judgeResult.type==='ok'">
+              <div>
+                <template x-for="[label,res] in Object.entries(judgeResult.results)" :key="label">
+                  <div style="border-bottom:1px solid #1a1a2e;">
+                    <div class="flex items-center gap-3 px-3 py-1.5" style="background:#060610;">
+                      <span class="px-2 py-0.5 rounded text-xs font-semibold" style="font-family:'JetBrains Mono',monospace;" :class="statusCls(res.status)" x-text="res.status"></span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;" x-text="label==='default'?'no testcase':`testcase ${label}`"></span>
+                      <div class="flex-1"></div>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;" x-text="`${res.time_ms}ms · ${res.memory_mb.toFixed(1)}MB`"></span>
+                    </div>
+                    <div x-show="res.stdout" class="out-area" :style="res.status==='AC'?'color:#6ee7b7':'color:#c9c9e3'" x-text="res.stdout"></div>
+                    <div x-show="res.stderr" class="out-area" style="color:#fca5a5;" x-text="res.stderr"></div>
+                    <div x-show="!res.stdout&&!res.stderr" class="out-area out-idle">// no output</div>
+                  </div>
+                </template>
+                <template x-if="judgeResult.summary.total>1">
+                  <div class="flex items-center gap-4 px-3 py-2" style="background:#060610;border-top:1px solid #1a1a2e;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a3a55;">summary</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6ee7b7;" x-text="`${judgeResult.summary.ac} AC`"></span>
+                    <template x-if="judgeResult.summary.tle"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fcd34d;" x-text="`${judgeResult.summary.tle} TLE`"></span></template>
+                    <template x-if="judgeResult.summary.mle"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#c4b5fd;" x-text="`${judgeResult.summary.mle} MLE`"></span></template>
+                    <template x-if="judgeResult.summary.rte"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fca5a5;" x-text="`${judgeResult.summary.rte} RTE`"></span></template>
+                    <div class="flex-1"></div>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;"
+                      :style="judgeResult.summary.all_passed?'color:#6ee7b7':'color:#fca5a5'"
+                      x-text="judgeResult.summary.all_passed?'✓ all passed':'✗ some failed'"></span>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="judgeResult&&judgeResult.type==='error'">
+              <div class="out-area" style="color:#fca5a5;" x-text="judgeResult.message"></div>
+            </template>
+          </div>
+        </div>
+
+      </div><!-- /ide-pane -->
+    </div><!-- /split-content -->
+  </div><!-- /split view -->
+
+  <script>
+    const DEFAULT_CODE =
+`#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+
+
+    return 0;
+}`;
+
+    function defineMonacoTheme() {
+      monaco.editor.defineTheme('codebrownie', {
+        base: 'vs-dark', inherit: true,
+        rules: [
+          { token: '',                foreground: 'c9c9e3' },
+          { token: 'comment',         foreground: '4a4a7a', fontStyle: 'italic' },
+          { token: 'keyword',         foreground: 'c792ea' },
+          { token: 'keyword.control', foreground: 'c792ea' },
+          { token: 'storage.type',    foreground: '82aaff' },
+          { token: 'type',            foreground: 'ffcb6b' },
+          { token: 'string',          foreground: 'c3e88d' },
+          { token: 'number',          foreground: 'f78c6c' },
+          { token: 'delimiter',       foreground: '89ddff' },
+          { token: 'operator',        foreground: '89ddff' },
+          { token: 'identifier',      foreground: 'eeffff' },
+          { token: 'function',        foreground: '82aaff' },
+          { token: 'variable',        foreground: 'eeffff' },
+          { token: 'macro',           foreground: 'c792ea' },
+        ],
+        colors: {
+          'editor.background':                 '#08080f',
+          'editor.foreground':                 '#c9c9e3',
+          'editorLineNumber.foreground':       '#2a2a45',
+          'editorLineNumber.activeForeground': '#6b6b90',
+          'editor.selectionBackground':        '#22d3ee22',
+          'editor.lineHighlightBackground':    '#0e0e1a',
+          'editor.lineHighlightBorder':        '#0e0e1a',
+          'editorCursor.foreground':           '#22d3ee',
+          'editorWhitespace.foreground':       '#1a1a2e',
+          'editorIndentGuide.background1':     '#1a1a2e',
+          'editorIndentGuide.activeBackground1':'#2a2a45',
+          'editorBracketMatch.background':     '#22d3ee18',
+          'editorBracketMatch.border':         '#22d3ee55',
+          'scrollbarSlider.background':        '#1a1a2e80',
+          'scrollbarSlider.hoverBackground':   '#3a3a5580',
+          'scrollbarSlider.activeBackground':  '#22d3ee30',
+          'editorGutter.background':           '#08080f',
+          'editorWidget.background':           '#0e0e1a',
+          'editorWidget.border':               '#1a1a2e',
+          'input.background':                  '#060610',
+          'input.border':                      '#1a1a2e',
+          'focusBorder':                       '#22d3ee44',
+          'editorSuggestWidget.background':    '#0e0e1a',
+          'editorSuggestWidget.border':        '#1a1a2e',
+          'editorSuggestWidget.selectedBackground':'#1a1a2e',
+        },
+      });
+    }
+
+    function app() {
+      return {
+        questions: [], loading: true,
+        search: '', sortBy: 'difficulty',
+        difficultyFilters: [], topicFilters: [], companyFilters: [],
+        topicSearch: '', companySearch: '',
+        detail: null, detailLoading: false,
+        judgeInput: '', judgeResult: null, judgeLoading: false, judgePhase: 'compiling…',
+        btab: 'stdin',
+        monacoLoading: false,
+        pct: 45,      // problem pane width %
+        dragging: false,
+
+        async init() {
+          const res = await fetch('/api/questions');
+          this.questions = await res.json();
+          this.loading = false;
+        },
+
+        async openQuestion(slug) {
+          const already = window._monacoEditor;
+          this.detail = this.questions.find(q => q.slug === slug) || { name:'…', difficulty:'Easy', slug, topic_tags:[], company_tags:[] };
+          this.detailLoading = true;
+          this.judgeResult = null;
+          this.judgeInput = '';
+          this.btab = 'stdin';
+          if (!already) this.monacoLoading = true;
+
+          const res = await fetch(`/api/questions/${slug}`);
+          this.detail = await res.json();
+          this.detailLoading = false;
+
+          this.$nextTick(() => {
+            // Scroll sidebar to active row
+            const row = document.querySelector('.sidebar-row.active');
+            if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+            if (window._monacoEditor) {
+              window._monacoEditor.setValue(DEFAULT_CODE);
+              window._monacoEditor.layout();
+            } else {
+              this.initMonaco();
+            }
+          });
+        },
+
+        initMonaco() {
+          this.monacoLoading = true;
+          require(['vs/editor/editor.main'], () => {
+            defineMonacoTheme();
+            const el = document.getElementById('monaco-editor');
+            window._monacoEditor = monaco.editor.create(el, {
+              value: DEFAULT_CODE,
+              language: 'cpp',
+              theme: 'codebrownie',
+              fontSize: 13,
+              fontFamily: "'JetBrains Mono','Fira Code',monospace",
+              fontLigatures: true,
+              lineHeight: 21,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              padding: { top: 12, bottom: 12 },
+              renderLineHighlight: 'line',
+              cursorBlinking: 'smooth',
+              cursorSmoothCaretAnimation: 'on',
+              smoothScrolling: true,
+              bracketPairColorization: { enabled: true },
+              guides: { indentation: true },
+              suggest: { showKeywords: true },
+              quickSuggestions: { strings: false },
+              scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+            });
+            this.monacoLoading = false;
+          });
+        },
+
+        startResize(e) {
+          this.dragging = true;
+          const container = document.getElementById('split-content');
+          const startX = e.clientX;
+          const startPct = this.pct;
+
+          const onMove = (ev) => {
+            const w = container.offsetWidth;
+            const delta = ((ev.clientX - startX) / w) * 100;
+            this.pct = Math.max(25, Math.min(70, startPct + delta));
+            if (window._monacoEditor) window._monacoEditor.layout();
+          };
+          const onUp = () => {
+            this.dragging = false;
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            if (window._monacoEditor) window._monacoEditor.layout();
+          };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        },
+
+        async runCode() {
+          const code = window._monacoEditor ? window._monacoEditor.getValue() : DEFAULT_CODE;
+          this.judgeLoading = true;
+          this.judgeResult = null;
+          this.judgePhase = 'compiling…';
+          this.btab = 'output';
+
+          try {
+            const compRes = await fetch('/api/judge/compile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code }),
+            });
+            const compData = await compRes.json();
+            if (!compRes.ok) {
+              this.judgeResult = { type:'ce', stderr: compData.detail?.stderr || 'Unknown compilation error' };
+              return;
+            }
+            this.judgePhase = 'running…';
+            const tc = this.judgeInput.trim() ? [{ input: this.judgeInput }] : [];
+            const execRes = await fetch('/api/judge/execute', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ binary_id: compData.binary_id, time_limit: 5, memory_limit_mb: 200, test_cases: tc }),
+            });
+            const execData = await execRes.json();
+            this.judgeResult = { type:'ok', ...execData };
+          } catch (e) {
+            this.judgeResult = { type:'error', message: e.message };
+          } finally {
+            this.judgeLoading = false;
+          }
+        },
+
+        get filtered() {
+          const ord = { Basic:0, Easy:1, Medium:2, Hard:3 };
+          let qs = this.questions;
+          if (this.search) { const s=this.search.toLowerCase(); qs=qs.filter(q=>q.name.toLowerCase().includes(s)); }
+          if (this.difficultyFilters.length) qs=qs.filter(q=>this.difficultyFilters.includes(q.difficulty));
+          if (this.topicFilters.length)      qs=qs.filter(q=>this.topicFilters.every(t=>q.topic_tags.includes(t)));
+          if (this.companyFilters.length)    qs=qs.filter(q=>this.companyFilters.every(c=>q.company_tags.includes(c)));
+          return [...qs].sort((a,b) => {
+            switch (this.sortBy) {
+              case 'difficulty':    return (ord[a.difficulty]??9) - (ord[b.difficulty]??9);
+              case 'accuracy_desc': return parseFloat(b.accuracy) - parseFloat(a.accuracy);
+              case 'accuracy_asc':  return parseFloat(a.accuracy) - parseFloat(b.accuracy);
+              case 'marks_desc':    return b.marks - a.marks;
+              default:              return a.name.localeCompare(b.name);
+            }
+          });
+        },
+        get allTopics()   { return [...new Set(this.questions.flatMap(q=>q.topic_tags))].sort(); },
+        get allCompanies(){ return [...new Set(this.questions.flatMap(q=>q.company_tags))].sort(); },
+        get filteredTopicOptions()   { const s=this.topicSearch.toLowerCase(); return s?this.allTopics.filter(t=>t.toLowerCase().includes(s)):this.allTopics; },
+        get filteredCompanyOptions() { const s=this.companySearch.toLowerCase(); return s?this.allCompanies.filter(c=>c.toLowerCase().includes(s)):this.allCompanies; },
+        get hasFilters() { return this.search||this.difficultyFilters.length||this.topicFilters.length||this.companyFilters.length; },
+
+        toggleDifficulty(d) { const i=this.difficultyFilters.indexOf(d); i>=0?this.difficultyFilters.splice(i,1):this.difficultyFilters.push(d); },
+        clearFilters() { this.search=''; this.difficultyFilters=[]; this.topicFilters=[]; this.companyFilters=[]; },
+        badgeCls(d)   { return {Basic:'badge-basic',Easy:'badge-easy',Medium:'badge-medium',Hard:'badge-hard'}[d]||'badge-basic'; },
+        chipActiveCls(d){ return {Basic:'chip-active-basic',Easy:'chip-active-easy',Medium:'chip-active-medium',Hard:'chip-active-hard'}[d]||'chip-active-basic'; },
+        statusCls(s)  { return {AC:'s-ac',TLE:'s-tle',MLE:'s-mle',RTE:'s-rte',WA:'s-wa',CE:'s-ce'}[s]||'s-rte'; },
+        diffDot(d)    { return {Basic:'background:#94a3b8',Easy:'background:#6ee7b7',Medium:'background:#fcd34d',Hard:'background:#fca5a5'}[d]||'background:#94a3b8'; },
+        fmtNum(n)     { if(!n)return'0'; if(n>=1e6)return(n/1e6).toFixed(1)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'K'; return String(n); },
+      };
+    }
+  </script>
+</body>
+</html>

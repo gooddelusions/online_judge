@@ -1,0 +1,10 @@
+config.yaml
+__pycache__/
+*.pyc
+.venv/
+
+# raw scraped data — 253 MB, not suitable for git
+research/data/
+
+# Claude Code internals
+.claude/
